@@ -41,5 +41,20 @@
       <option name="name" value="maven4" />
       <option name="url" value="https://repo.gradle.org/gradle/libs-releases" />
     </remote-repository>
+    <remote-repository>
+      <option name="id" value="maven5" />
+      <option name="name" value="maven5" />
+      <option name="url" value="https://ci-artifactory.corda.r3cev.com/artifactory/corda-releases" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="maven7" />
+      <option name="name" value="maven7" />
+      <option name="url" value="http://ci-artifactory.corda.r3cev.com/artifactory/corda-lib" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="BintrayJCenter" />
+      <option name="name" value="BintrayJCenter" />
+      <option name="url" value="https://jcenter.bintray.com/" />
+    </remote-repository>
   </component>
 </project>

@@ -60,5 +60,4 @@ public class QueryTokens {
             return result;
         }
     }
-
 }
