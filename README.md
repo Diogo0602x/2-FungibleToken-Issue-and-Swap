@@ -1,4 +1,4 @@
-# Fungible House token sample CorDapp
+# Fungible House token sample CorDapp and Fungible Cassino token sample CorDapp
 
 This CorDapp serves as a basic example to create, issue, and move [Fungible](https://training.corda.net/libraries/tokens-sdk/#fungibletoken) tokens in Corda utilizing the Token SDK. In this specific fungible token sample, we will not talk about the redeem method of the Token SDK because the redeem process will take the physical asset off the ledger and destroy the token. Thus, this sample will be a simple walk though of the creation, issuance, and transfer of the tokens.
 
@@ -12,7 +12,7 @@ Quick blog about TokenSDK see [here](https://medium.com/corda/introduction-to-to
 
 There are a few flows that enable this project.
 
-We will create a resource (in this case a house), and then issue tokens for that resource, and then transfer those tokens.
+We will create a resource (in this case a house), and then issue tokens for an account SDK, and then transfer those tokens to another account.
 
 
 We create the representation of a house, within `CreateHouseTokenFlow.java`.
@@ -40,6 +40,9 @@ We issue tokens `IssueHouseTokenFlow`
 
 ```java
 public SignedTransaction call() throws FlowException {
+    //Generate accountinfo & AnonymousParty object for transaction
+    AccountInfo holderAccountInfo = UtilitiesKt.getAccountService(this).accountInfo(holder).get(0).getState().getData();
+    Party holderAccount = holderAccountInfo.getHost();
     //get house states on ledger with uuid as input tokenId
     StateAndRef<FungibleHouseTokenState> stateAndRef = getServiceHub().getVaultService().
             queryBy(FungibleHouseTokenState.class).getStates().stream()
@@ -53,7 +56,7 @@ public SignedTransaction call() throws FlowException {
     FungibleToken fungibleToken = new FungibleTokenBuilder()
             .ofTokenType(evolvableTokenType.toPointer(FungibleHouseTokenState.class)) // get the token pointer
             .issuedBy(getOurIdentity())
-            .heldBy(holder)
+            .heldBy(holderAccount)
             .withAmount(quantity)
             .buildFungibleToken();
 
@@ -66,11 +69,14 @@ We then move the house token. `MoveHouseTokenFlow`
 
 ```java
 public SignedTransaction call() throws FlowException {
+    AccountInfo toAccountInfo = UtilitiesKt.getAccountService(this).accountInfo(toAccount).get(0).getState().getData();
+    Party toAccountParty = toAccountInfo.getHost();
+
     //get house states on ledger with uuid as input tokenId
     StateAndRef<FungibleHouseTokenState> stateAndRef = getServiceHub().getVaultService().
-    queryBy(FungibleHouseTokenState.class).getStates().stream()
-    .filter(sf->sf.getState().getData().getSymbol().equals(symbol)).findAny()
-    .orElseThrow(()-> new IllegalArgumentException("FungibleHouseTokenState symbol=\""+symbol+"\" not found from vault"));
+            queryBy(FungibleHouseTokenState.class).getStates().stream()
+            .filter(sf->sf.getState().getData().getSymbol().equals(symbol)).findAny()
+            .orElseThrow(()-> new IllegalArgumentException("FungibleHouseTokenState=\""+symbol+"\" not found from vault"));
 
     //get the RealEstateEvolvableTokenType object
     FungibleHouseTokenState tokenstate = stateAndRef.getState().getData();
@@ -82,7 +88,7 @@ public SignedTransaction call() throws FlowException {
     //PartyAndAmount partyAndAmount = new PartyAndAmount(holder, amount);
 
     //use built in flow to move fungible tokens to holder
-    return subFlow(new MoveFungibleTokens(amount,holder));
+    return subFlow(new MoveFungibleTokens(amount,toAccountParty));       
 }
 ```
 
@@ -117,6 +123,13 @@ When started via the command line, each node will display an interactive shell:
 
 You can use this shell to interact with your node.
 
+Run below flow on Seller's node. This will create an sellerAccount on Sellers's node and share it with Buyer
+
+    start CreateAndShareAccountFlow  accountName : sellerAccount , partyToShareAccountInfoToList : Buyer
+    
+Run below flow on Buyers's node. This will create an buyerAccunt on Buyer's node and share it with Seller
+
+    start CreateAndShareAccountFlow  accountName : buyerAccunt , partyToShareAccountInfoToList : Seller
 
 Create house on the ledger using Seller's terminal
 
@@ -126,16 +139,24 @@ This will create a linear state of type HouseTokenState in Seller's vault
 
 Seller will now issue some tokens to Buyer. run below command via Seller's terminal.
 
-    flow start IssueHouseTokenFlow symbol: house, quantity: 50, holder: Buyer
+    flow start IssueHouseTokenFlow symbol: house, quantity: 50, holder: buyerAccount
 
 Now at Buyer's terminal, we can check the tokens by running:
     flow start GetTokenBalance symbol: house
 
 Since Buyer now has 50 tokens, Move tokens to Friend from Buyer s terminal
 
-    flow start MoveHouseTokenFlow symbol: house, holder: Friend, quantity: 23
+    flow start MoveHouseTokenFlow symbol: house, quantity: 23, toAccount: sellerAccount
 
 You can now view the number of Tokens held by both the Buyer and the friend by executing the following Query flow in their respective terminals.
 
-    flow start GetTokenBalance symbol: house
+    flow start GetHouseTokenBalance symbol: house
+    
+#### To Crete, Issue or Move using Cassino Token
 
+Roun the commands below with the same logics of the Fungible House Token with the commands
+
+    flow start CreateCassinoTokenFlow symbol: cassino, valuation: 100000
+    flow start IssueCassinoTokenFlow symbol: cassino, quantity: 50, holder: buyerAccount
+    flow start MoveCassinoTokenFlow symbol: cassino, quantity: 23, toAccount: sellerAccount
+    flow start GetCassinoTokenBalance symbol: cassino
