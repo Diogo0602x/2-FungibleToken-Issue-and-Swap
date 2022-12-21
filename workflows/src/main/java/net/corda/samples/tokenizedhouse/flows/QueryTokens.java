@@ -9,6 +9,7 @@ import com.r3.corda.lib.tokens.workflows.utilities.QueryUtilities;
 import net.corda.core.contracts.TransactionState;
 import net.corda.core.node.services.Vault;
 import net.corda.core.node.services.vault.QueryCriteria;
+import net.corda.samples.tokenizedhouse.states.FungibleCassinoTokenState;
 import net.corda.samples.tokenizedhouse.states.FungibleHouseTokenState;
 import net.corda.core.contracts.Amount;
 import net.corda.core.contracts.StateAndRef;
@@ -60,6 +61,49 @@ public class QueryTokens {
             for (FungibleHouseTokenState evolvableTokenType : evolvableTokenTypeSet){
                 //get the pointer pointer to the house
                 TokenPointer<FungibleHouseTokenState> tokenPointer = evolvableTokenType.toPointer(FungibleHouseTokenState.class);
+                //query balance or each different Token
+                Amount<TokenType> amount = QueryUtilities.tokenBalance(getServiceHub().getVaultService(), tokenPointer);
+                result += "\nYou currently have "+ amount.getQuantity()+ " " + symbol + " Tokens issued by "
+                        +evolvableTokenType.getMaintainer().getName().getOrganisation()+"\n";
+            }
+            return result;
+        }
+    }
+
+    @InitiatingFlow
+    @StartableByRPC
+    public static class GetCassinoTokenBalance extends FlowLogic<String> {
+        private final ProgressTracker progressTracker = new ProgressTracker();
+        private final String symbol;
+
+        public GetCassinoTokenBalance(String symbol) {
+            this.symbol = symbol;
+        }
+
+        @Override
+        public ProgressTracker getProgressTracker() {
+            return progressTracker;
+        }
+
+        @Override
+        @Suspendable
+        public String call() throws FlowException {
+            //get a set of the CassinoEvolvableTokenType object on ledger with uuid as input tokenId
+            Set<FungibleCassinoTokenState> evolvableTokenTypeSet = getServiceHub().getVaultService().
+                    queryBy(FungibleCassinoTokenState.class).getStates().stream()
+                    .filter(sf->sf.getState().getData().getSymbol().equals(symbol)).map(StateAndRef::getState)
+                    .map(TransactionState::getData).collect(Collectors.toSet());
+            if (evolvableTokenTypeSet.isEmpty()){
+                throw new IllegalArgumentException("FungibleCassinoTokenState symbol=\""+symbol+"\" not found from vault");
+            }
+
+            // Save the result
+            String result="";
+
+            // Technically the set will only have one element, because we are query by symbol.
+            for (FungibleCassinoTokenState evolvableTokenType : evolvableTokenTypeSet){
+                //get the pointer pointer to the house
+                TokenPointer<FungibleCassinoTokenState> tokenPointer = evolvableTokenType.toPointer(FungibleCassinoTokenState.class);
                 //query balance or each different Token
                 Amount<TokenType> amount = QueryUtilities.tokenBalance(getServiceHub().getVaultService(), tokenPointer);
                 result += "\nYou currently have "+ amount.getQuantity()+ " " + symbol + " Tokens issued by "

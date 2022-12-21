@@ -4,7 +4,7 @@ import net.corda.samples.tokenizedhouse.states.FungibleHouseTokenState;
 import net.corda.testing.node.MockServices;
 import org.junit.Test;
 
-public class StateTests {
+public class HouseStateTests {
     private final MockServices ledgerServices = new MockServices();
 
     //sample State tests
