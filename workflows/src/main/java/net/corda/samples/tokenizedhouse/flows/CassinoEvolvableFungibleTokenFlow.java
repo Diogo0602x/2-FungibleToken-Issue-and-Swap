@@ -138,7 +138,8 @@ public class CassinoEvolvableFungibleTokenFlow {
             //PartyAndAmount partyAndAmount = new PartyAndAmount(holder, amount);
 
             //use built in flow to move fungible tokens to holder
-            return subFlow(new MoveFungibleTokens(amount,toAccountParty));       }
+            return subFlow(new MoveFungibleTokens(amount,toAccountParty));
+        }
     }
 
     @InitiatedBy(CassinoEvolvableFungibleTokenFlow.MoveCassinoTokenFlow.class)
