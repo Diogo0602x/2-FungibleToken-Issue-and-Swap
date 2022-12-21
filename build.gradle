@@ -68,6 +68,7 @@ allprojects {
 
     dependencies {
         compile "com.google.guava:guava:$guava_version"
+        implementation "net.corda:corda-core:4.7"
     }
 
     jar {
@@ -112,7 +113,7 @@ dependencies {
     cordapp "$tokens_release_group:tokens-workflows:$tokens_release_version"
 
 
-    //accounts
+    //accounts SDK dependencies
     cordapp "$accounts_release_group:accounts-contracts:$accounts_release_version"
     cordapp "$confidential_id_release_group:ci-workflows:$confidential_id_release_version"
     cordapp "$accounts_release_group:accounts-workflows:$accounts_release_version"

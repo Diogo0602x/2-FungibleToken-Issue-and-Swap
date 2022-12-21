@@ -1,18 +1,26 @@
 package net.corda.samples.tokenizedhouse.flows;
 
 import co.paralleluniverse.fibers.Suspendable;
+import kotlin.Unit;
 import com.google.common.collect.ImmutableList;
+import com.r3.corda.lib.accounts.contracts.states.AccountInfo;
+import com.r3.corda.lib.accounts.workflows.UtilitiesKt;
 import com.r3.corda.lib.tokens.contracts.states.FungibleToken;
 import com.r3.corda.lib.tokens.contracts.types.TokenType;
-import com.r3.corda.lib.tokens.workflows.flows.rpc.*;
+import com.r3.corda.lib.tokens.workflows.flows.rpc.CreateEvolvableTokens;
+import com.r3.corda.lib.tokens.workflows.flows.rpc.IssueTokens;
+import com.r3.corda.lib.tokens.workflows.flows.rpc.MoveFungibleTokens;
+import com.r3.corda.lib.tokens.workflows.flows.rpc.MoveFungibleTokensHandler;
 import com.r3.corda.lib.tokens.workflows.utilities.FungibleTokenBuilder;
-import net.corda.core.identity.CordaX500Name;
-import net.corda.samples.tokenizedhouse.states.FungibleHouseTokenState;
-import kotlin.Unit;
-import net.corda.core.contracts.*;
+import net.corda.core.contracts.Amount;
+import net.corda.core.contracts.StateAndRef;
+import net.corda.core.contracts.TransactionState;
+import net.corda.core.contracts.UniqueIdentifier;
 import net.corda.core.flows.*;
+import net.corda.core.identity.CordaX500Name;
 import net.corda.core.identity.Party;
 import net.corda.core.transactions.SignedTransaction;
+import net.corda.samples.tokenizedhouse.states.FungibleHouseTokenState;
 
 /**
  * Create,Issue,Move,Redeem token flows for a house asset on ledger
@@ -60,9 +68,9 @@ public class RealEstateEvolvableFungibleTokenFlow {
     public static class IssueHouseTokenFlow extends FlowLogic<SignedTransaction>{
         private final String symbol;
         private final int quantity;
-        private final Party holder;
+        private final String holder;
 
-        public IssueHouseTokenFlow(String symbol, int quantity, Party holder) {
+        public IssueHouseTokenFlow(String symbol, int quantity, String holder) {
             this.symbol = symbol;
             this.quantity = quantity;
             this.holder = holder;
@@ -71,6 +79,9 @@ public class RealEstateEvolvableFungibleTokenFlow {
         @Override
         @Suspendable
         public SignedTransaction call() throws FlowException {
+            //Generate accountinfo & AnonymousParty object for transaction
+            AccountInfo holderAccountInfo = UtilitiesKt.getAccountService(this).accountInfo(holder).get(0).getState().getData();
+            Party holderAccount = holderAccountInfo.getHost();
             //get house states on ledger with uuid as input tokenId
             StateAndRef<FungibleHouseTokenState> stateAndRef = getServiceHub().getVaultService().
                     queryBy(FungibleHouseTokenState.class).getStates().stream()
@@ -84,7 +95,7 @@ public class RealEstateEvolvableFungibleTokenFlow {
             FungibleToken fungibleToken = new FungibleTokenBuilder()
                     .ofTokenType(evolvableTokenType.toPointer(FungibleHouseTokenState.class)) // get the token pointer
                     .issuedBy(getOurIdentity())
-                    .heldBy(holder)
+                    .heldBy(holderAccount)
                     .withAmount(quantity)
                     .buildFungibleToken();
 
@@ -98,20 +109,24 @@ public class RealEstateEvolvableFungibleTokenFlow {
      */
     @StartableByRPC
     @InitiatingFlow
-    public static class MoveHouseTokenFlow extends FlowLogic<SignedTransaction>{
+    public static class MoveHouseTokenFlow extends FlowLogic<SignedTransaction> {
         private final String symbol;
-        private final Party holder;
         private final int quantity;
+        private final String toAccount;
 
-        public MoveHouseTokenFlow(String symbol, Party holder, int quantity) {
+        public MoveHouseTokenFlow(String symbol, int quantity, String toAccount) {
             this.symbol = symbol;
-            this.holder = holder;
             this.quantity = quantity;
+            this.toAccount = toAccount;
         }
 
-        @Override
+
         @Suspendable
+        @Override
         public SignedTransaction call() throws FlowException {
+            AccountInfo toAccountInfo = UtilitiesKt.getAccountService(this).accountInfo(toAccount).get(0).getState().getData();
+            Party toAccountParty = toAccountInfo.getHost();
+
             //get house states on ledger with uuid as input tokenId
             StateAndRef<FungibleHouseTokenState> stateAndRef = getServiceHub().getVaultService().
                     queryBy(FungibleHouseTokenState.class).getStates().stream()
@@ -128,8 +143,7 @@ public class RealEstateEvolvableFungibleTokenFlow {
             //PartyAndAmount partyAndAmount = new PartyAndAmount(holder, amount);
 
             //use built in flow to move fungible tokens to holder
-            return subFlow(new MoveFungibleTokens(amount,holder));
-        }
+            return subFlow(new MoveFungibleTokens(amount,toAccountParty));       }
     }
 
     @InitiatedBy(MoveHouseTokenFlow.class)

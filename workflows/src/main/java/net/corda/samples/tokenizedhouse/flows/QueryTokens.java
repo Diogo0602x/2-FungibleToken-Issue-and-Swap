@@ -28,11 +28,11 @@ public class QueryTokens {
 
     @InitiatingFlow
     @StartableByRPC
-    public static class GetTokenBalance extends FlowLogic<String> {
+    public static class GetHouseTokenBalance extends FlowLogic<String> {
         private final ProgressTracker progressTracker = new ProgressTracker();
         private final String symbol;
 
-        public GetTokenBalance(String symbol) {
+        public GetHouseTokenBalance(String symbol) {
             this.symbol = symbol;
         }
 
@@ -100,7 +100,6 @@ public class QueryTokens {
             Set<FungibleHouseTokenState> tokenStateSet = getServiceHub().getVaultService().queryBy(FungibleHouseTokenState.class, new QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)).getStates().stream()
                     .filter(tokenState -> tokenState.getState().getData().getMaintainer().equals(account.getHost()) && tokenState.getState().getData().getSymbol().equals(symbol)).map(StateAndRef::getState)
                     .map(TransactionState::getData).collect(Collectors.toSet());
-
             // Save the result
             String result = "";
 

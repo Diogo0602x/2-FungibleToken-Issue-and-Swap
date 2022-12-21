@@ -8,7 +8,6 @@ import net.corda.core.contracts.UniqueIdentifier;
 import net.corda.core.identity.Party;
 import org.jetbrains.annotations.NotNull;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 
